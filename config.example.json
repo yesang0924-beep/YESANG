@@ -1,0 +1,10 @@
+{
+  "_note": "复制此文件为 config.local.json 并按本机实际路径填写。config.local.json 已被 gitignore，不会入库。所有字段均必填（无默认值）。",
+  "bin_dir": "<网关引擎目录，含 go_proxy.py / relay-watchdog.py / 密钥 / 路由表>",
+  "codex_dir": "<Codex 配置目录，含 AGENTS.md 与 model_catalog_json>",
+  "catalog_path": "<模型目录 JSON 的完整路径>",
+  "pythonw": "<无控制台 Python 解释器完整路径>",
+  "runtime_python": "<Python 解释器完整路径（启动网关用）>",
+  "pm2_cmd": "<pm2.cmd 完整路径（用于守护 gemini-proxy）>",
+  "gemini_proxy_dir": "<gemini-proxy 项目目录>"
+}

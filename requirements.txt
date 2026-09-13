@@ -1,0 +1,7 @@
+# 运行时
+pywebview>=6.0          # 桌面外壳（Windows 走系统 WebView2）
+pystray>=0.19           # 系统托盘（关闭窗口时收进托盘继续后台运行）
+Pillow>=10.0            # 托盘图标绘制
+
+# 打包
+pyinstaller>=6.0
