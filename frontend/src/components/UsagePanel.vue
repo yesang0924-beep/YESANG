@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   usage: { type: Object, default: () => ({ models: [] }) },
+  metrics: { type: Object, default: () => ({ points: [], totals: {} }) },
 })
 
 const rows = computed(() =>
@@ -11,6 +12,8 @@ const rows = computed(() =>
 const totalReq = computed(() => rows.value.reduce((a, b) => a + b.requests, 0))
 const totalCost = computed(() => rows.value.reduce((a, b) => a + b.cost, 0))
 const maxReq = computed(() => Math.max(1, ...rows.value.map((r) => r.requests)))
+const hourly = computed(() => props.metrics.points || [])
+const maxHourReq = computed(() => Math.max(1, ...hourly.value.map((p) => p.requests)))
 
 /** 按上游前缀聚合，看哪条线路在承压 */
 const byUpstream = computed(() => {
@@ -44,9 +47,20 @@ function pct(v, max) {
 </script>
 
 <template>
-  <div v-if="!rows.length" class="empty">暂无统计数据</div>
+  <div v-if="!rows.length && !hourly.length" class="empty">暂无统计数据</div>
 
   <template v-else>
+    <div v-if="hourly.length" class="trend-wrap">
+      <div class="section-title">最近 24 小时</div>
+      <div class="trend">
+        <div v-for="p in hourly" :key="p.hour" class="tcol" :title="`${p.hour} · ${p.requests} 次 · $${p.cost.toFixed(4)}`">
+          <div class="tbar" :class="{ bad: p.err > p.ok }" :style="{ height: pct(p.requests, maxHourReq) }"></div>
+          <span class="thour">{{ p.hour.slice(11) }}</span>
+        </div>
+      </div>
+      <div class="trend-sum">请求 {{ metrics.totals.requests || 0 }} · 失败 {{ metrics.totals.err || 0 }} · ${{ (metrics.totals.cost || 0).toFixed(4) }}</div>
+    </div>
+    <template v-if="rows.length">
     <!-- 按上游聚合 -->
     <div class="section-title">按上游</div>
     <div v-for="g in byUpstream" :key="g.name" class="bar-row">
@@ -100,6 +114,7 @@ function pct(v, max) {
         </tr>
       </tbody>
     </table>
+    </template>
   </template>
 </template>
 
@@ -148,4 +163,11 @@ function pct(v, max) {
 }
 table { margin-top: 2px; }
 tr.total td { font-weight: 600; }
+.trend-wrap { margin-bottom: 4px; }
+.trend { display: flex; align-items: flex-end; gap: 4px; height: 70px; padding: 6px 0; }
+.tcol { flex: 1; min-width: 5px; height: 58px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.tbar { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+.tbar.bad { background: linear-gradient(180deg, var(--fail), #b33); }
+.thour { margin-top: 4px; font-size: 9px; color: var(--fg-3); font-family: var(--font-mono); }
+.trend-sum { text-align: right; color: var(--fg-3); font-size: 11px; }
 </style>

@@ -8,7 +8,7 @@ const STATE_TEXT = { ok: '可用', warn: '限流中（稍后自动恢复）', fa
 
 <template>
   <div v-if="!results.length" class="empty">
-    点右上角「开始测试」逐个实测 4 个上游
+    默认不做真实请求；点右上角「开始测试」后会调用模型，可能产生少量费用
   </div>
   <div v-else>
     <div v-for="r in results" :key="r.key" class="row">
@@ -16,6 +16,7 @@ const STATE_TEXT = { ok: '可用', warn: '限流中（稍后自动恢复）', fa
       <span class="nm">{{ r.label }} <span class="sub">{{ r.model }}</span></span>
       <span class="tail">
         {{ STATE_TEXT[r.state] || r.state }}
+        <template v-if="r.latency_ms != null"> · {{ r.latency_ms }}ms</template>
         <template v-if="r.detail"> · {{ String(r.detail).slice(0, 50) }}</template>
       </span>
     </div>

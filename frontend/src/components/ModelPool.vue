@@ -5,8 +5,9 @@ import Icon from './Icon.vue'
 const props = defineProps({
   models: { type: Array, default: () => [] },
   probing: { type: Object, default: () => ({}) },
+  results: { type: Object, default: () => ({}) },
 })
-const emit = defineEmits(['probe', 'remove', 'add'])
+const emit = defineEmits(['probe', 'probe-all', 'remove', 'add', 'move', 'rename'])
 
 const GROUPS = [
   { value: 'go/', label: '[Go] OpenCode Go' },
@@ -18,6 +19,10 @@ const GROUPS = [
 const newSlug = ref('')
 const newGroup = ref('go/')
 
+/* 改名：行内编辑 —— pywebview 不支持 window.prompt，只能这么干 */
+const editing = ref(null)
+const editName = ref('')
+
 const grouped = computed(() => {
   const out = {}
   for (const m of props.models) {
@@ -26,8 +31,26 @@ const grouped = computed(() => {
   return out
 })
 
+function tagOf(display) {
+  return (String(display || '').match(/^\[[^\]]*\]\s*/) || [''])[0]
+}
+
 function stripTag(display) {
   return String(display || '').replace(/^\[[^\]]*\]\s*/, '')
+}
+
+function startEdit(m) {
+  editing.value = m.slug
+  editName.value = stripTag(m.display)
+}
+
+function commitEdit(m) {
+  const name = editName.value.trim()
+  // 保留原有 [组] 前缀，客户端菜单里分组标识不丢
+  if (name && name !== stripTag(m.display)) {
+    emit('rename', { slug: m.slug, display: tagOf(m.display) + name })
+  }
+  editing.value = null
 }
 
 function submit() {
@@ -54,7 +77,10 @@ function submit() {
         <Icon name="plus" :size="13" />添加
       </button>
       <span class="spacer"></span>
-      <span class="tag-note">增删自动备份 catalog</span>
+      <button class="btn sm" title="并发测试模型池内所有模型的实时连通性" @click="emit('probe-all')">
+        <Icon name="zap" :size="12" />全部测活
+      </button>
+      <span class="tag-note">↑↓ 排序 · 双击改名</span>
     </div>
 
     <div v-if="!models.length" class="empty">模型池为空</div>
@@ -67,8 +93,26 @@ function submit() {
       <div class="mgrid">
         <div v-for="m in list" :key="m.slug" class="mitem">
           <div class="top">
-            <span class="nm">{{ stripTag(m.display) }}</span>
+            <input
+              v-if="editing === m.slug"
+              v-model="editName"
+              class="rename-input"
+              type="text"
+              @keyup.enter="commitEdit(m)"
+              @keyup.esc="editing = null"
+              @blur="commitEdit(m)"
+            >
+            <span v-else class="nm" title="双击改名" @dblclick="startEdit(m)">{{ stripTag(m.display) }}</span>
             <span v-if="m.ctx" class="ctx">{{ Math.round(m.ctx / 1000) }}K</span>
+            <span
+              v-if="results[m.slug]"
+              class="state-pill"
+              :class="results[m.slug].ok ? 'ok' : 'fail'"
+              :title="String(results[m.slug].text || '')"
+            >
+              <span class="led" :class="results[m.slug].ok ? 'ok' : 'fail'"></span>
+              {{ results[m.slug].ok ? ((results[m.slug].latency_ms || 0) + 'ms') : (results[m.slug].text ? String(results[m.slug].text).slice(0, 14) : '不可用') }}
+            </span>
           </div>
           <div class="id">{{ m.slug }}</div>
           <div class="btns">
@@ -80,6 +124,19 @@ function submit() {
               <span v-if="probing[m.slug]" class="spin"></span>
               <Icon v-else name="zap" :size="12" />
               {{ probing[m.slug] ? '测试中' : '测试' }}
+            </button>
+            <button
+              class="btn sm"
+              title="上移（客户端下拉里更靠前）"
+              @click="emit('move', { slug: m.slug, direction: 'up' })"
+            >
+              <Icon name="up" :size="12" />
+            </button>
+            <button class="btn sm" title="下移" @click="emit('move', { slug: m.slug, direction: 'down' })">
+              <Icon name="down" :size="12" />
+            </button>
+            <button class="btn sm" title="改显示名" @click="startEdit(m)">
+              <Icon name="pencil" :size="12" />
             </button>
             <button class="btn sm" @click="emit('remove', m.slug)">
               <Icon name="trash" :size="12" />
@@ -159,6 +216,13 @@ function submit() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: text;
+}
+.rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  padding: 2px 7px;
 }
 .ctx {
   font-family: var(--font-mono);
@@ -178,4 +242,44 @@ function submit() {
   white-space: nowrap;
 }
 .mitem .btns { display: flex; gap: 6px; }
+
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+.state-pill.ok {
+  background: var(--ok-bg, rgba(34, 197, 94, 0.12));
+  color: var(--ok, #16a34a);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.state-pill.fail {
+  background: var(--fail-bg, rgba(239, 68, 68, 0.12));
+  color: var(--fail, #dc2626);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.state-pill .led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.state-pill .led.ok {
+  background: #16a34a;
+  box-shadow: 0 0 5px rgba(22, 163, 74, 0.6);
+}
+.state-pill .led.fail {
+  background: #dc2626;
+  box-shadow: 0 0 5px rgba(220, 38, 38, 0.6);
+}
+
 </style>

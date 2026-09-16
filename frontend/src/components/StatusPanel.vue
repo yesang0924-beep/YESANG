@@ -3,6 +3,7 @@ import Icon from './Icon.vue'
 
 defineProps({
   status: { type: Object, default: () => ({ ports: [], watchdog: {}, proxy_ports: [] }) },
+  versions: { type: Object, default: () => ({}) },
 })
 </script>
 
@@ -33,6 +34,10 @@ defineProps({
       <span class="tail">:{{ p.port }}</span>
       <span class="state" :class="p.up ? 'on' : 'warnstate'">{{ p.up ? '已启用' : '未启用' }}</span>
     </div>
+
+    <div v-if="versions && versions.console" class="version-line">
+      控制台 v{{ versions.console }} · 网关协议 {{ versions.gateway_protocol ?? '未上报' }} · 配置 schema {{ versions.config_schema }}
+    </div>
   </div>
 </template>
 
@@ -48,4 +53,5 @@ defineProps({
 .state.on        { background: var(--ok-soft);   color: var(--ok); }
 .state.off       { background: var(--fail-soft); color: var(--fail); }
 .state.warnstate { background: var(--warn-soft); color: var(--warn); }
+.version-line { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--fg-3); font-size: 11px; }
 </style>

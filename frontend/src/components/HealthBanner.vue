@@ -28,6 +28,9 @@ const actionText = computed(() => (props.health.level === 'fail' ? '一键启动
 
       <div class="hero-text">
         <h1 class="hero-title">{{ title }}</h1>
+        <div v-if="health.checks && health.checks.length" class="checks">
+          <span v-for="c in health.checks" :key="c.name" class="check-pill" :class="c.ok ? 'ok' : 'bad'" :title="c.detail">{{ c.name }}</span>
+        </div>
         <div class="hero-sub">
           <template v-if="health.problems && health.problems.length">
             <div v-for="(p, i) in health.problems" :key="i" class="problem">· {{ p }}</div>
@@ -75,6 +78,12 @@ const actionText = computed(() => (props.health.level === 'fail' ? '一键启动
   line-height: 1.2;
   margin-bottom: 4px;
 }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 5px; }
+.check-pill {
+  font-size: 10.5px; line-height: 1; padding: 5px 8px; border-radius: 999px;
+  background: var(--ok-soft); color: var(--ok);
+}
+.check-pill.bad { background: var(--warn-soft); color: var(--warn); }
 .hero-sub {
   color: var(--fg-2);
   font-size: 13px;

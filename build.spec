@@ -49,5 +49,5 @@ exe = EXE(
     upx=False,
     upx_exclude=[],
     console=False,          # 无控制台（pythonw 行为），不会闪黑窗
-    icon=None,
+    icon='assets/icon.ico',
 )

@@ -32,3 +32,8 @@ tools/fix-hidden-windows.py
 tools/rebuild-shortcut.py
 tools/make-desktop-shortcut.py
 tools/verify-shortcut.py
+
+# 本地原子写入/升级备份与临时文件
+*.bak
+*.bak-*
+*.tmp
